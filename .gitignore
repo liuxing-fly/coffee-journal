@@ -1,0 +1,6 @@
+miniprogram/
+cloudfunctions/
+project.config.json
+.DS_Store
+node_modules/
+*.log

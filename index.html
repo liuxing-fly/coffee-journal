@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Coffee Journal</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-logo"><h1>CJ</h1><p>Coffee Journal</p></div>
+    <div class="sidebar-nav">
+      <div class="nav-item active" onclick="showPage('home')"><span class="icon">H</span><span>首页</span></div>
+      <div class="nav-item" onclick="showPage('beans')"><span class="icon">B</span><span>豆库</span></div>
+      <div class="nav-item" onclick="showPage('brews')"><span class="icon">R</span><span>冲煮</span></div>
+      <div class="nav-item" onclick="showPage('analytics')"><span class="icon">A</span><span>分析</span></div>
+      <div class="nav-item" onclick="showPage('settings')"><span class="icon">S</span><span>设置</span></div>
+    </div>
+    <div class="sidebar-footer">v1.1.0</div>
+  </div>
+  <div class="main">
+    <!-- HOME -->
+    <div class="page active" id="page-home">
+      <div class="page-title">Coffee Journal</div>
+      <div class="stats-row" id="home-stats"></div>
+      <div class="action-bar"><div></div><button class="btn btn-primary" onclick="openBrewModal()">+ 记录冲煮</button></div>
+      <div class="card"><div class="card-title">最近冲煮</div><div id="home-recent-brews"></div></div>
+    </div>
+    <!-- BEANS -->
+    <div class="page" id="page-beans">
+      <div class="action-bar">
+        <div class="page-title" style="margin:0">咖啡豆库</div>
+        <div style="display:flex;gap:8px">
+          <input class="search-input" placeholder="搜索咖啡豆..." id="bean-search" oninput="renderBeans()">
+          <button class="btn btn-primary" onclick="openBeanModal()">+ 添加</button>
+        </div>
+      </div>
+      <div id="bean-list-container"></div>
+    </div>
+    <!-- BREWS -->
+    <div class="page" id="page-brews">
+      <div class="action-bar">
+        <div class="page-title" style="margin:0">冲煮记录</div>
+        <button class="btn btn-primary" onclick="openBrewModal()">+ 记录冲煮</button>
+      </div>
+      <div id="brew-list-container"></div>
+    </div>
+    <!-- ANALYTICS -->
+    <div class="page" id="page-analytics">
+      <div class="page-title">数据分析</div>
+      <div class="stats-row" id="analytics-stats"></div>
+      <div id="analytics-content"></div>
+    </div>
+    <!-- SETTINGS -->
+    <div class="page" id="page-settings">
+      <div class="page-title">设置</div>
+      <div class="card">
+        <div class="card-title">默认冲煮参数</div>
+        <div class="form-grid">
+          <div class="form-group"><label class="form-label">默认粉量 (g)</label><input type="number" id="set-dose" value="15"></div>
+          <div class="form-group"><label class="form-label">默认水温 (C)</label><input type="number" id="set-temp" value="92"></div>
+        </div>
+        <div style="margin-top:14px"><button class="btn btn-primary" onclick="saveSettings()">保存</button></div>
+      </div>
+      <div class="card">
+        <div class="card-title">数据管理</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-outline" onclick="exportData()">导出 JSON</button>
+          <button class="btn btn-outline" onclick="importDataClick()">导入 JSON</button>
+          <button class="btn btn-danger" onclick="clearAllData()">清空所有数据</button>
+        </div>
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+      </div>
+      <div class="card">
+        <div class="card-title">关于</div>
+        <p style="font-size:13px;color:var(--sub)">Coffee Journal - 咖啡爱好者的自用记录工具。<br>数据存在浏览器本地，不会上传到任何服务器。<br>建议定期使用导出功能备份数据。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Bean Modal ===== -->
+<div class="modal-overlay" id="modal-bean" style="display:none">
+  <div class="modal">
+    <div class="modal-title" id="bean-modal-title">添加咖啡豆</div>
+    <input type="hidden" id="bm-id">
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">豆名 <span class="req">*</span></label><input type="text" id="bm-name" placeholder="如：耶加雪菲 科契尔"></div>
+      <div class="form-group"><label class="form-label">产地</label><input type="text" id="bm-origin" placeholder="国家/产区"></div>
+      <div class="form-group"><label class="form-label">品种</label><select id="bm-variety"></select></div>
+      <div class="form-group"><label class="form-label">处理法</label><select id="bm-process"></select></div>
+      <div class="form-group"><label class="form-label">海拔 (m)</label><input type="number" id="bm-altitude" placeholder="1800"></div>
+      <div class="form-group"><label class="form-label">烘焙商</label><input type="text" id="bm-roaster" placeholder="如 Seesaw"></div>
+      <div class="form-group"><label class="form-label">烘焙日期</label><input type="date" id="bm-roastdate"></div>
+      <div class="form-group"><label class="form-label">采摘年份</label><input type="text" id="bm-harvest" placeholder="2024"></div>
+      <div class="form-group"><label class="form-label">重量 (g)</label><input type="number" id="bm-weight" placeholder="200"></div>
+      <div class="form-group"><label class="form-label">价格</label><input type="number" id="bm-price" placeholder="128"></div>
+      <div class="form-group"><label class="form-label">购买渠道</label><input type="text" id="bm-shop" placeholder="淘宝/线下"></div>
+      <div class="form-group"><label class="form-label">状态</label><select id="bm-status"><option value="open">未开袋</option><option value="drinking">饮用中</option><option value="finished">已喝完</option></select></div>
+    </div>
+    <div style="margin-top:12px"><label class="form-label">烘焙度</label><div class="roast-selector" id="bm-roast-selector"></div></div>
+    <div style="margin-top:12px"><label class="form-label">个人评分</label><div class="stars" id="bm-rating-stars"></div></div>
+    <div style="margin-top:12px"><label class="form-label">风味标签（多选）</label><div class="flavor-grid" id="bm-flavors"></div></div>
+    <div style="margin-top:12px"><label class="form-label">备注</label><textarea id="bm-notes" placeholder="关于这款豆子的其他信息..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-bean')">取消</button>
+      <button class="btn btn-primary" onclick="saveBean()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Bean Detail Modal ===== -->
+<div class="modal-overlay" id="modal-bean-detail" style="display:none">
+  <div class="modal" style="max-width:600px">
+    <div id="bean-detail-content"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-bean-detail')">关闭</button>
+      <button class="btn btn-primary" id="bean-detail-edit-btn">编辑</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Brew Modal ===== -->
+<div class="modal-overlay" id="modal-brew" style="display:none">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title" id="brew-modal-title">记录冲煮</div>
+    <input type="hidden" id="brm-id">
+    <div class="form-group"><label class="form-label">选择咖啡豆</label><select id="brm-bean"></select></div>
+    <div style="margin-top:12px"><label class="form-label">冲煮方式</label><div class="method-grid" id="brm-method-grid"></div></div>
+    <div class="form-grid" style="margin-top:12px">
+      <div class="form-group"><label class="form-label">粉量 (g)</label><input type="number" id="brm-dose" value="15" oninput="calcWater()"></div>
+      <div class="form-group"><label class="form-label">水量 (ml)</label><input type="number" id="brm-water" value="225"></div>
+      <div class="form-group"><label class="form-label">水温 (C)</label><input type="number" id="brm-temp" value="92"></div>
+      <div class="form-group"><label class="form-label">时间</label><input type="text" id="brm-time" placeholder="2:30"></div>
+      <div class="form-group"><label class="form-label">研磨度</label><input type="text" id="brm-grind" placeholder="#20"></div>
+      <div class="form-group"><label class="form-label">磨豆机</label><input type="text" id="brm-grinder" placeholder="Comandante C40"></div>
+    </div>
+    <div style="margin-top:16px"><label class="form-label">口感评价</label>
+      <div class="slider-group"><span class="slider-label">总分</span><input type="range" class="slider-track" min="1" max="10" value="7" id="brm-score" oninput="updateSlider(this)"><span class="slider-val" id="brm-score-val">7</span></div>
+      <div class="slider-group"><span class="slider-label">香气</span><input type="range" class="slider-track" min="1" max="10" value="7" id="brm-aroma" oninput="updateSlider(this)"><span class="slider-val" id="brm-aroma-val">7</span></div>
+      <div class="slider-group"><span class="slider-label">酸质</span><input type="range" class="slider-track" min="1" max="10" value="7" id="brm-acidity" oninput="updateSlider(this)"><span class="slider-val" id="brm-acidity-val">7</span></div>
+      <div class="slider-group"><span class="slider-label">醇厚</span><input type="range" class="slider-track" min="1" max="10" value="7" id="brm-body" oninput="updateSlider(this)"><span class="slider-val" id="brm-body-val">7</span></div>
+      <div class="slider-group"><span class="slider-label">甜感</span><input type="range" class="slider-track" min="1" max="10" value="7" id="brm-sweet" oninput="updateSlider(this)"><span class="slider-val" id="brm-sweet-val">7</span></div>
+    </div>
+    <div style="margin-top:12px"><label class="form-label">风味笔记</label><textarea id="brm-flavors" placeholder="这次喝到了什么风味？"></textarea></div>
+    <div style="margin-top:8px"><label class="form-label">备注</label><textarea id="brm-notes" placeholder="其他想记录的..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('modal-brew')">取消</button>
+      <button class="btn btn-danger" id="brm-delete-btn" style="display:none" onclick="deleteBrew()">删除</button>
+      <button class="btn btn-primary" onclick="saveBrew()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Brew Detail Modal ===== -->
+<div class="modal-overlay" id="modal-brew-detail" style="display:none">
+  <div class="modal" style="max-width:560px">
+    <div id="brew-detail-content"></div>
+    <div class="modal-actions">
+      <button class="btn btn-danger" id="brew-detail-delete-btn">删除</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-brew-detail')">关闭</button>
+      <button class="btn btn-primary" id="brew-detail-edit-btn">编辑</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
